@@ -28,6 +28,16 @@ static const char * const error_string[MAXERROR] =
 	[E_FAULT]	= "segmentation fault",
 };
 
+static void
+printnum_helper(void (*putch)(int, void*), void *putdat,
+	 unsigned long long num, unsigned base)
+{
+	if (num >= base) {
+		printnum_helper(putch, putdat, num / base, base);
+	}else{
+		putch("0123456789abcdef"[num % base], putdat);
+	}
+}
 /*
  * Print a number (base <= 16) in reverse order,
  * using specified putch function and associated pointer putdat.
@@ -41,6 +51,28 @@ printnum(void (*putch)(int, void*), void *putdat,
 	// you can add helper function if needed.
 	// your code here:
 	
+	if(padc=='-'){
+		padc = ' ';
+		unsigned long long reversenum = 0;
+		int cnt=0;
+		while(num >= base){
+			++cnt;
+			 num /= base;
+			reversenum *= base ;
+			reversenum += num % base;
+		}
+		// print any needed pad characters after last digit **for overflow**
+		putch("0123456789abcdef"[num],putdat);
+		// print left number
+		for( ; cnt > 0 ;reversenum /= base){
+			cnt--;
+			putch("0123456789abcdef"[reversenum % base],putdat);
+		}
+		// print any needed pad characters after last digit
+		while (--width > 0)
+			putch(padc, putdat);
+		return ;
+	}
 	// first recursively print all preceding (more significant) digits
 	if (num >= base) {
 		printnum(putch, putdat, num / base, base, width - 1, padc);
