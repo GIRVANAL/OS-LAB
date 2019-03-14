@@ -91,8 +91,9 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 	register int ch, err;
 	unsigned long long num;
 	int base, lflag, width, precision, altflag;
+	int plus;
 	char padc;
-
+	char *pos;
 	while (1) {
 		while ((ch = *(unsigned char *) fmt++) != '%') {
 			if (ch == '\0')
@@ -106,9 +107,14 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		precision = -1;
 		lflag = 0;
 		altflag = 0;
+		plus = 0;
+		pos =NULL;
 	reswitch:
 		switch (ch = *(unsigned char *) fmt++) {
-
+		// plus=1  mean + or  plus=0 mean  -
+		case '+':
+			plus = 1;
+			goto reswitch;
 		// flag to pad on the right
 		case '-':
 			padc = '-';
@@ -198,6 +204,8 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			if ((long long) num < 0) {
 				putch('-', putdat);
 				num = -(long long) num;
+			}else if(plus == 1){
+				putch('+',putdat);
 			}
 			base = 10;
 			goto number;
@@ -249,9 +257,17 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 				  //        or when the number of characters written so far 
 				  //        is beyond the range of the integers the signed char type 
 				  //        can represent.
-
 				  const char *null_error = "\nerror! writing through NULL pointer! (%n argument)\n";
 				  const char *overflow_error = "\nwarning! The value %n argument pointed to has been overflowed!\n";
+				  pos =va_arg(ap,char*);
+				  if(pos == NULL){
+					  printfmt(putch,putdat,"%s",null_error);
+				  }else if((*(unsigned int *)putdat)>127){
+					  printfmt(putch,putdat,"%s",overflow_error);
+					  *pos = -1;
+				  }else{
+					  *pos = *(char*)putdat;
+				  }
 
 				  // Your code here
 
