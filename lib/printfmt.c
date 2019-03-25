@@ -294,7 +294,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 				  pos =va_arg(ap,char*);
 				  if(pos == NULL){
 					  printfmt(putch,putdat,"%s",null_error);
-				  }else if((*(unsigned int *)putdat)>127){
+				  }else if((*(unsigned int *)putdat)>254){
 					  printfmt(putch,putdat,"%s",overflow_error);
 					  *pos = -1;
 				  }else{
