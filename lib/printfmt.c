@@ -28,6 +28,16 @@ static const char * const error_string[MAXERROR] =
 	[E_FAULT]	= "segmentation fault",
 };
 
+static void
+printnum_helper(void (*putch)(int, void*), void *putdat,
+	 unsigned long long num, unsigned base)
+{
+	if (num >= base) {
+		printnum_helper(putch, putdat, num / base, base);
+	}else{
+		putch("0123456789abcdef"[num % base], putdat);
+	}
+}
 /*
  * Print a number (base <= 16) in reverse order,
  * using specified putch function and associated pointer putdat.
@@ -36,6 +46,34 @@ static void
 printnum(void (*putch)(int, void*), void *putdat,
 	 unsigned long long num, unsigned base, int width, int padc)
 {
+
+	// if cprintf'parameter includes pattern of the form "%-", padding
+	// space on the right side if neccesary.
+	// you can add helper function if needed.
+	// your code here:
+	
+	if(padc=='-'){
+		padc = ' ';
+		unsigned long long reversenum = 0;
+		int cnt=0;
+		while(num >= base){
+			++cnt;
+			 num /= base;
+			reversenum *= base ;
+			reversenum += num % base;
+		}
+		// print any needed pad characters after last digit **for overflow**
+		putch("0123456789abcdef"[num],putdat);
+		// print left number
+		for( ; cnt > 0 ;reversenum /= base){
+			cnt--;
+			putch("0123456789abcdef"[reversenum % base],putdat);
+		}
+		// print any needed pad characters after last digit
+		while (--width > 0)
+			putch(padc, putdat);
+		return ;
+	}
 	// first recursively print all preceding (more significant) digits
 	if (num >= base) {
 		printnum(putch, putdat, num / base, base, width - 1, padc);
@@ -86,8 +124,9 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 	register int ch, err;
 	unsigned long long num;
 	int base, lflag, width, precision, altflag;
+	int plus;
 	char padc;
-
+	char *pos;
 	while (1) {
 		while ((ch = *(unsigned char *) fmt++) != '%') {
 			if (ch == '\0')
@@ -101,9 +140,14 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		precision = -1;
 		lflag = 0;
 		altflag = 0;
+		plus = 0;
+		pos =NULL;
 	reswitch:
 		switch (ch = *(unsigned char *) fmt++) {
-
+		// plus=1  mean + or  plus=0 mean  -
+		case '+':
+			plus = 1;
+			goto reswitch;
 		// flag to pad on the right
 		case '-':
 			padc = '-';
@@ -193,6 +237,8 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			if ((long long) num < 0) {
 				putch('-', putdat);
 				num = -(long long) num;
+			}else if(plus == 1){
+				putch('+',putdat);
 			}
 			base = 10;
 			goto number;
@@ -206,10 +252,10 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		// (unsigned) octal
 		case 'o':
 			// Replace this with your code.
-			putch('X', putdat);
-			putch('X', putdat);
-			putch('X', putdat);
-			break;
+			putch('0', putdat);
+			num = getuint(&ap,lflag);
+			base = 8;
+			goto number;
 
 		// pointer
 		case 'p':
@@ -227,6 +273,39 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		number:
 			printnum(putch, putdat, num, base, width, padc);
 			break;
+
+		case 'n': {
+				  // You can consult the %n specifier specification of the C99 printf function
+				  // for your reference by typing "man 3 printf" on the console. 
+
+				  // 
+				  // Requirements:
+				  // Nothing printed. The argument must be a pointer to a signed char, 
+				  // where the number of characters written so far is stored.
+				  //
+
+				  // hint:  use the following strings to display the error messages 
+				  //        when the cprintf function ecounters the specific cases,
+				  //        for example, when the argument pointer is NULL
+				  //        or when the number of characters written so far 
+				  //        is beyond the range of the integers the signed char type 
+				  //        can represent.
+				  const char *null_error = "\nerror! writing through NULL pointer! (%n argument)\n";
+				  const char *overflow_error = "\nwarning! The value %n argument pointed to has been overflowed!\n";
+				  pos =va_arg(ap,char*);
+				  if(pos == NULL){
+					  printfmt(putch,putdat,"%s",null_error);
+				  }else if((*(unsigned int *)putdat)>254){
+					  printfmt(putch,putdat,"%s",overflow_error);
+					  *pos = -1;
+				  }else{
+					  *pos = *(char*)putdat;
+				  }
+
+				  // Your code here
+
+				  break;
+			  }
 
 		// escaped '%' character
 		case '%':

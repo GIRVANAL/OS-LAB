@@ -54,15 +54,87 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
+<<<<<<< HEAD
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 	// Your code here.
+=======
+// Lab1 only
+// read the pointer to the retaddr on the stack
+static uint32_t
+read_pretaddr() {
+    uint32_t pretaddr;
+    __asm __volatile("leal 4(%%ebp), %0" : "=r" (pretaddr)); 
+    return pretaddr;
+}
+
+void
+do_overflow(void)
+{
+    cprintf("Overflow success\n");
+}
+
+void
+start_overflow(void)
+{
+	// You should use a techique similar to buffer overflow
+	// to invoke the do_overflow function and
+	// the procedure must return normally.
+
+    // And you must use the "cprintf" function with %n specifier
+    // you augmented in the "Exercise 9" to do this job.
+
+    // hint: You can use the read_pretaddr function to retrieve 
+    //       the pointer to the function call return address;
+	char str[256] = {};
+	int nstr = 0;
+	// Your code here.
+    char* pret_addr = (char *) read_pretaddr();
+    uint32_t overflow_addr = (uint32_t) do_overflow;
+    int i;
+    for (i = 0; i < 4; ++i)
+      cprintf("%*s%n\n", pret_addr[i] & 0xFF, "", pret_addr + 4 + i);
+    for (i = 0; i < 4; ++i)
+      cprintf("%*s%n\n", (overflow_addr >> (8*i)) & 0xFF, "", pret_addr + i);
+
+
+}
+
+void
+overflow_me(void)
+{
+        start_overflow();
+}
+int 
+mon_backtrace(int argc,char **argv,struct Trapframe *tf){
+	overflow_me();
+	cprintf("Stack backtrace:\n");
+	uint32_t* ebp = (uint32_t*) read_ebp();
+	struct Eipdebuginfo info;
+	while(ebp!=NULL){
+		uint32_t eip = *(ebp+1);
+		cprintf("  eip %08x", eip);
+		cprintf("  ebp %08x", ebp);
+		cprintf("  args");
+		cprintf(" %08x", *(ebp+2));
+		cprintf(" %08x", *(ebp+3));
+		cprintf(" %08x", *(ebp+4));
+		cprintf(" %08x", *(ebp+5));
+		cprintf(" %08x\n", *(ebp+6));
+		debuginfo_eip(eip, &info);
+        cprintf("         %s:%u %.*s+%u\n",
+        info.eip_file, info.eip_line, info.eip_fn_namelen, info.eip_fn_name, eip - (uint32_t)info.eip_fn_addr);
+      	ebp = (uint32_t *) (*ebp);
+	}
+	cprintf("Backtrace success\n");
+>>>>>>> lab1
 	return 0;
 }
 
-
-
+int mon_time(int argc,char**argv,struct Trapframe *tf){
+	return 0;
+}
 /***** Kernel monitor command interpreter *****/
 
 #define WHITESPACE "\t\r\n "
@@ -114,6 +186,7 @@ monitor(struct Trapframe *tf)
 
 	cprintf("Welcome to the JOS kernel monitor!\n");
 	cprintf("Type 'help' for a list of commands.\n");
+    cprintf("x=%d y=%d\n", 3);
 
 
 	while (1) {
