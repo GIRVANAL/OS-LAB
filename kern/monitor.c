@@ -10,6 +10,7 @@
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
+#include <kern/pmap.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
@@ -24,10 +25,33 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace", "Backtrace calling stack", mon_backtrace },
+	{"showmappings","Display mappings from begin to end",mon_showmappings}
 };
 
 /***** Implementations of basic kernel monitor commands *****/
-
+int
+mon_showmappings(int argc, char **argv, struct Trapframe *tf)
+{
+	if(argc != 3){
+		cprintf("Usage: showmappings 0xbegin_addr 0xend_addr\n");
+		return 0;
+	}
+	uint32_t begin =  ROUNDDOWN(strtol(argv[1],NULL,16),PGSIZE);
+	uint32_t end = ROUNDUP(strtol(argv[2],NULL,16),PGSIZE);
+	cprintf(" %10s %10s %8s %8s %8s \n","PADDR","VADDR","PTE_P","PTE_W","PTE_U");
+	for(uint32_t i = begin;i <end;i+=PGSIZE){
+		cprintf(" 0x%8x  0x%8x ", i, KADDR(i));
+		pte_t* pte = pgdir_walk(kern_pgdir, KADDR(i), 0);
+		if(pte){
+			cprintf("%8x  %8x  %8x  \n", (*pte & PTE_P)>0, (*pte & PTE_W)>0,(*pte & PTE_U)>0);
+		}
+		else{
+			cprintf("%8x  %8x  %8x  \n", 0, 0, 0);
+		}
+	}
+	return 0;
+}
 int
 mon_help(int argc, char **argv, struct Trapframe *tf)
 {
