@@ -204,6 +204,7 @@ mem_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
 	boot_map_region_large(kern_pgdir,KERNBASE,-KERNBASE,0, PTE_W);
+
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -273,7 +274,6 @@ page_init(void)
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
-
 }
 
 //
@@ -297,6 +297,7 @@ page_alloc(int alloc_flags)
 	}
 	struct PageInfo *ret = page_free_list;
 	page_free_list =page_free_list->pp_link;
+	ret->pp_link = NULL;
 	if (alloc_flags & ALLOC_ZERO) {
 		memset(page2kva(ret), 0, PGSIZE);  
 	}
@@ -411,7 +412,7 @@ boot_map_region_large(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, in
 {
 	// Fill this function in
 	size_t i;
-	for(i = 0; i < size/PGSIZE; ++i){
+	for(i = 0; i < size/PTSIZE; ++i){
 		pgdir[PDX(va + i * PTSIZE)] = (pa + i * PTSIZE) | perm | PTE_P | PTE_PS;
 	}
 }
