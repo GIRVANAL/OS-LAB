@@ -54,12 +54,6 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
-<<<<<<< HEAD
-int
-mon_backtrace(int argc, char **argv, struct Trapframe *tf)
-{
-	// Your code here.
-=======
 // Lab1 only
 // read the pointer to the retaddr on the stack
 static uint32_t
@@ -128,7 +122,6 @@ mon_backtrace(int argc,char **argv,struct Trapframe *tf){
       	ebp = (uint32_t *) (*ebp);
 	}
 	cprintf("Backtrace success\n");
->>>>>>> lab1
 	return 0;
 }
 
